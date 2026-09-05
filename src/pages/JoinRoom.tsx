@@ -12,6 +12,50 @@ export function JoinRoom() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [checking, setChecking] = useState(!!roomCode);
+
+  useEffect(() => {
+    const autoJoin = async () => {
+      if (!roomCode || !user) return;
+      
+      const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode.toUpperCase()).single();
+      if (!room) {
+        setChecking(false);
+        return;
+      }
+      
+      const { data: players } = await supabase.from('room_players').select('*').eq('room_id', room.id);
+      if (players && players.length >= 2) {
+         const me = players.find(p => p.user_id === user.id);
+         if (!me) {
+            // We are a new anonymous user, but the room is full.
+            // Assume we are the guest returning from a wiped browser session (like WhatsApp webview).
+            const guest = players.find(p => p.role === 'guest');
+            if (guest) {
+              const oldUserId = guest.user_id;
+              const newUserId = user.id;
+              
+              const { data: oldProfile } = await supabase.from('profiles').select('name').eq('id', oldUserId).single();
+              if (oldProfile) {
+                await supabase.from('profiles').update({ name: oldProfile.name }).eq('id', newUserId);
+              }
+              
+              await Promise.all([
+                supabase.from('room_players').update({ user_id: newUserId }).eq('id', guest.id),
+                supabase.from('game_sessions').update({ current_player_id: newUserId }).eq('current_player_id', oldUserId),
+                supabase.from('scores').update({ player_id: newUserId }).eq('player_id', oldUserId),
+                supabase.from('puzzle_pieces').update({ placed_by: newUserId }).eq('placed_by', oldUserId),
+                supabase.from('completed_memories').update({ winner_id: newUserId }).eq('winner_id', oldUserId)
+              ]);
+            }
+         }
+         navigate(`/lobby/${roomCode.toUpperCase()}`);
+      } else {
+         setChecking(false);
+      }
+    };
+    autoJoin();
+  }, [roomCode, user, navigate]);
 
   const handleJoin = async () => {
     if (!code || !name) return;
@@ -49,6 +93,10 @@ export function JoinRoom() {
     
     navigate(`/lobby/${code.toUpperCase()}`);
   };
+
+  if (checking) {
+    return <div className="min-h-screen flex items-center justify-center"><Heart className="animate-pulse text-primary" size={40} /></div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
