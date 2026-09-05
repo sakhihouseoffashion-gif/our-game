@@ -17,17 +17,12 @@ export function Game() {
   const [pieces, setPieces] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [scores, setScores] = useState<any[]>([]);
-  const [gameState, setGameState] = useState<'selecting' | 'starting_sequence' | 'reveal' | 'playing' | 'completed'>('selecting');
+  const [gameState, setGameState] = useState<'selecting' | 'playing' | 'completed'>('selecting');
 
-  // Handle the cinematic sequence safely
+  // Skip cinematic sequence directly to playing
   useEffect(() => {
-    if (gameState === 'starting_sequence') {
-      const t1 = setTimeout(() => setGameState('reveal'), 2000);
-      const t2 = setTimeout(() => setGameState('playing'), 6000);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
+    if (gameState as any === 'starting_sequence' || gameState as any === 'reveal') {
+      setGameState('playing');
     }
   }, [gameState]);
 
@@ -80,13 +75,7 @@ export function Game() {
       } else {
         setGameState(prev => {
           if (prev === 'selecting') {
-            const hasSeen = localStorage.getItem(`seen_reveal_${sessionData.id}`);
-            if (hasSeen) {
-              return 'playing'; // Skip animation, go straight to game
-            } else {
-              localStorage.setItem(`seen_reveal_${sessionData.id}`, 'true');
-              return 'starting_sequence'; // Trigger the animation effect
-            }
+            return 'playing'; // Go straight to the game immediately
           }
           return prev;
         });
@@ -148,21 +137,6 @@ export function Game() {
             <span className="text-6xl mb-6">🎲</span>
             <h2 className="text-2xl font-serif text-dark mb-4">CHOOSING A MEMORY...</h2>
             <p className="text-muted">Something from your story is coming.</p>
-          </motion.div>
-        )}
-        
-        {gameState === 'reveal' && memory && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-background z-40 flex flex-col items-center justify-center text-center p-6">
-            <h2 className="text-2xl font-serif text-primary mb-8">A MEMORY HAS BEEN CHOSEN ❤️</h2>
-            <motion.div 
-              initial={{ scale: 0.8, filter: 'blur(10px)' }}
-              animate={{ scale: 1, filter: 'blur(0px)' }}
-              transition={{ duration: 1.5 }}
-              className="w-64 h-64 rounded-2xl overflow-hidden shadow-2xl mb-8 border-4 border-white"
-            >
-              <img src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/memories/${memory.storage_path}`} className="w-full h-full object-cover" alt="Memory" />
-            </motion.div>
-            <p className="text-dark font-medium mb-4 text-xl">Remember this one? ❤️</p>
           </motion.div>
         )}
       </AnimatePresence>
