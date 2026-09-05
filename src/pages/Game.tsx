@@ -50,6 +50,17 @@ export function Game() {
     return () => { supabase.removeChannel(channel); };
   }, [roomCode, user]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchGameState();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [roomCode, user]);
+
   const fetchGameState = async () => {
     // 1. Get Room
     const { data: roomData } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();

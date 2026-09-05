@@ -1,12 +1,46 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { motion } from 'framer-motion';
 import { Heart, BookHeart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 export function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setChecking(false);
+      return;
+    }
+    
+    const checkActiveRoom = async () => {
+      const { data, error } = await supabase
+        .from('room_players')
+        .select('room_id, rooms!inner(room_code, status)')
+        .eq('user_id', user.id)
+        .in('rooms.status', ['waiting', 'playing'])
+        .limit(1)
+        .maybeSingle();
+
+      if (data && data.rooms) {
+        // Supabase returns the joined record as an object for foreign key relations
+        const roomData = Array.isArray(data.rooms) ? data.rooms[0] : data.rooms;
+        if (roomData.status === 'playing') {
+          navigate(`/game/${roomData.room_code}`);
+        } else {
+          navigate(`/lobby/${roomData.room_code}`);
+        }
+      } else {
+        setChecking(false);
+      }
+    };
+    
+    checkActiveRoom();
+  }, [user, navigate]);
 
   const handleCreateRoom = async () => {
     // Generate a random human readable room code e.g. LOVE-7K9P
@@ -29,6 +63,13 @@ export function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+      {checking && user ? (
+        <div className="z-10 flex flex-col items-center justify-center">
+          <Heart className="text-primary animate-pulse mb-4" size={48} fill="currentColor" />
+          <p className="text-dark font-medium animate-pulse">Finding your room...</p>
+        </div>
+      ) : (
+        <>
       
       {/* Decorative background elements */}
       <motion.div 
@@ -83,6 +124,8 @@ export function Home() {
           </Button>
         </div>
       </motion.div>
+      </>
+      )}
     </div>
   );
 }

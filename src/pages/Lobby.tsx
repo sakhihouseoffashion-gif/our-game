@@ -65,7 +65,20 @@ export function Lobby() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomCode, user, profile, navigate, room]);
+  }, [roomCode, user, profile, navigate]); // Removed room from deps to prevent channel thrashing
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && room) {
+        // Force refresh when coming back from background
+        fetchPlayers(room.id);
+        fetchMemoryCount(room.id);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [room]);
 
   const fetchPlayers = async (roomId: string) => {
     const { data } = await supabase
