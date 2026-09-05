@@ -24,6 +24,10 @@ export function Lobby() {
         .single();
       
       if (roomData) {
+        if (roomData.status === 'playing') {
+          navigate(`/game/${roomCode}`);
+          return;
+        }
         setRoom(roomData);
         // Ensure user is in room_players
         const { data: existingPlayer } = await supabase
@@ -50,13 +54,13 @@ export function Lobby() {
     // Subscribe to room_players and memories changes
     const channel = supabase.channel(`room:${roomCode}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players' }, () => {
-        if (room) fetchPlayers(room.id);
+        fetchRoom(); // Better to re-fetch room completely to be safe
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'memories' }, () => {
-        if (room) fetchMemoryCount(room.id);
+        fetchRoom();
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms' }, (payload) => {
-        if (payload.new.status === 'playing') {
+        if (payload.new.room_code === roomCode && payload.new.status === 'playing') {
           navigate(`/game/${roomCode}`);
         }
       })
