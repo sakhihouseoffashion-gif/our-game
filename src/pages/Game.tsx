@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Heart, Sparkles } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PuzzleBoard } from '../components/game/PuzzleBoard';
@@ -120,11 +120,6 @@ export function Game() {
     await supabase.rpc('pass_turn', { p_session_id: session.id });
   };
 
-  const handleHint = async () => {
-    await supabase.rpc('use_hint', { p_session_id: session.id });
-    // Maybe highlight correct piece briefly? (requires client-side state, skipping for MVP)
-  };
-
   if (!session) return <div className="min-h-screen flex items-center justify-center"><Heart className="animate-pulse text-primary" size={40} /></div>;
 
   const isMyTurn = session.current_player_id === user?.id;
@@ -206,11 +201,8 @@ export function Game() {
           </div>
 
           {/* Controls */}
-          <div className="flex justify-between items-center gap-4 pb-4">
-            <Button variant="secondary" onClick={handleHint} disabled={!isMyTurn} className="flex-1 gap-2">
-              <Sparkles size={18} /> Hint
-            </Button>
-            <Button variant="outline" onClick={handlePass} disabled={!isMyTurn} className="flex-1">
+          <div className="flex justify-center pb-4">
+            <Button variant="outline" onClick={handlePass} disabled={!isMyTurn} className="w-full max-w-[200px]">
               Pass Turn
             </Button>
           </div>
