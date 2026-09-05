@@ -101,7 +101,15 @@ export function Lobby() {
   const startGame = async () => {
     if (room && players.length === 2 && memoryCount > 0) {
       const difficulty = localStorage.getItem(`omg_difficulty_${room.id}`) || 'medium';
-      await supabase.rpc('start_game', { p_room_id: room.id, p_difficulty: difficulty });
+      const { data, error } = await supabase.rpc('start_game', { p_room_id: room.id, p_difficulty: difficulty });
+      
+      if (error) {
+        console.error("Start Game Error:", error);
+        alert(`Failed to start game: ${error.message}`);
+      } else {
+        // Force navigation immediately, don't just rely on the realtime event
+        navigate(`/game/${roomCode}`);
+      }
     }
   };
 
