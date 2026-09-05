@@ -59,10 +59,8 @@ export function Lobby() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'memories' }, () => {
         fetchRoom();
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms' }, (payload) => {
-        if (payload.new.room_code === roomCode && payload.new.status === 'playing') {
-          navigate(`/game/${roomCode}`);
-        }
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms' }, () => {
+        fetchRoom(); // Safest way to check status without relying on incomplete payload fields
       })
       .subscribe();
 
